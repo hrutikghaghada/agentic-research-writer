@@ -17,3 +17,4 @@ wheels/
 # Custom
 .memory
 outputs
+test_logic

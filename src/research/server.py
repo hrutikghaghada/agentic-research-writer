@@ -5,6 +5,7 @@ import logging
 from fastmcp import FastMCP
 
 from research.config.settings import get_settings
+from research.routers.tools import register_mcp_tools
 from research.utils.logging import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,8 @@ def create_mcp_server() -> FastMCP:
         name=settings.server_name,
         version=settings.version,
     )
+
+    register_mcp_tools(mcp)
 
     return mcp
 

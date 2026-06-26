@@ -10,7 +10,9 @@ export PYTHONPATH = ./src/
 
 # --- Default Values ---
 
-QA_FOLDERS := src/
+QA_FOLDERS := src/ scripts/
+TEST_SLUG := im-currently-designing-a-second-brain-ai-agent
+DATASET_DIR := datasets/linkedin_paul_iusztin
 
 # --- QA ---
 
@@ -30,3 +32,8 @@ lint-check: # Check code for linting issues without fixing them using ruff linte
 
 run-research-server: # Run the Deep Research MCP server (stdio transport).
 	uv run fastmcp run src/research/server.py
+
+test-research-workflow: # Test the research workflow using the dataset seed.
+	@mkdir -p test_logic
+	@cp $(DATASET_DIR)/$(TEST_SLUG)_seed.md test_logic/seed.md
+	uv run python scripts/test_research_workflow.py --working-dir test_logic --iterations 2
