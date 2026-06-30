@@ -24,7 +24,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         structured research findings with sources.
 
         Args:
-            working_dir: Path to the working directory.
+            working_dir: Absolute path to the current open workspace root.
             query: The research topic or question to investigate.
         """
 
@@ -45,7 +45,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         with key insights.
 
         Args:
-            working_dir: Path to the working directory.
+            working_dir: Absolute path to the current open workspace root.
             youtube_url: The YouTube video URL to analyze.
         """
 
@@ -63,7 +63,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         into a structured research.md file.
 
         Args:
-            working_dir: Path to the working directory containing .memory/ data.
+            working_dir: Absolute path to the current open workspace root.
         """
 
         return compile_research_tool(working_dir)
