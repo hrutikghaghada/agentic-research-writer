@@ -13,3 +13,12 @@ Follow these instructions:
 
 Produce the output in Markdown format.
 """
+
+PROMPT_RESEARCH = """
+{query}
+
+Provide a detailed, comprehensive answer to the question above.
+Focus on official sources, authoritative references, and well-established facts.
+Include as much relevant detail as possible.
+Cite your sources clearly.
+"""

@@ -74,3 +74,95 @@ async def call_gemini(
     )
 
     return response.text
+
+
+async def call_gemini_search(
+    prompt: str,
+    model: str | None = None,
+) -> tuple[str, list[dict[str, str]]]:
+    """Call Gemini with Google Search grounding.
+
+    Google Search grounding and structured output cannot be used simultaneously,
+    so this function returns raw text + programmatically extracted sources.
+
+    Args:
+        prompt: The search prompt to send to Gemini.
+        model: Model name override. Defaults to settings.gemini_model.
+
+    Returns:
+        A tuple of (answer_text, sources_list) where sources_list contains
+        dicts with 'url' and 'title' keys.
+    """
+
+    settings = get_settings()
+    client = get_client()
+    model_name = model or settings.gemini_model
+
+    # Enable Google Search grounding — this tells Gemini to search the live web
+    # before generating a response, producing answers backed by real-time sources.
+    # Note: grounding and structured output (response_schema) are mutually exclusive
+    # in the Gemini API, which is why this is a separate function from call_gemini.
+    config = types.GenerateContentConfig(
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+    )
+
+    response = await client.aio.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config,
+    )
+
+    # Extract the text answer (fallback to empty string if None)
+    answer_text = response.text or ""
+    # Parse the grounding metadata to extract deduplicated source URLs/titles
+    sources = extract_grounding_sources(response)
+
+    return answer_text, sources
+
+
+def extract_grounding_sources(
+    response: types.GenerateContentResponse,
+) -> list[dict[str, str]]:
+    """Extract source URLs and titles from grounding metadata.
+
+    Args:
+        response: The Gemini response object.
+
+    Returns:
+        A list of dicts with 'url' and 'title' keys.
+    """
+
+    sources: list[dict[str, str]] = []
+    # Track seen URLs to deduplicate (Gemini may cite the same source multiple times)
+    seen_urls: set[str] = set()
+
+    # Early return if the response has no candidates (e.g. blocked by safety filters)
+    if not response.candidates:
+        return sources
+
+    # Only look at the first candidate (Gemini typically returns one)
+    candidate = response.candidates[0]
+
+    # Navigate the nested grounding metadata structure safely using getattr,
+    # since these attributes may not exist depending on the response type.
+    grounding_metadata = getattr(candidate, "grounding_metadata", None)
+    if grounding_metadata is None:
+        return sources
+
+    grounding_chunks = getattr(grounding_metadata, "grounding_chunks", None)
+    if grounding_chunks is None:
+        return sources
+
+    # Each grounding chunk may contain a "web" object with a URI and title.
+    # We extract these and deduplicate by URL.
+    for chunk in grounding_chunks:
+        web = getattr(chunk, "web", None)
+        if web is None:
+            continue
+        url = getattr(web, "uri", "") or ""
+        title = getattr(web, "title", "") or ""
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            sources.append({"url": url, "title": title})
+
+    return sources
